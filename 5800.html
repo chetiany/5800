@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MST Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <style>
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+        button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>MST Visualization</h1>
+        <div style="display: flex; width: 100%;">
+            <!-- show the city names with their codes -->
+            <div style="width: 300px; border-right: 1px solid black; padding: 10px;">
+                <h3>City Codes</h3>
+                <ul>
+                    <li v-for="(city, index) in cities" :key="index">
+                        {{ index }}: {{ city.name }}
+                    </li>
+                </ul>
+            </div>
+            <!-- Canvas for graph -->
+            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center;">
+                <canvas id="graphCanvas" width="1200" height="800"></canvas>
+                <div>
+                    <button @click="usePrimAlgorithm">Use Prim's Algorithm</button>
+                    <button @click="useKruskalAlgorithm">Use Kruskal's Algorithm</button>
+                    <button @click="resetGraph">Reset</button>
+                    <button @click="removeEdge">Remove Edge and Recalculate MST</button>
+                    <button @click="modifyDistance">Modify Distance</button>
+                </div>
+                <div v-if="totalDistance !== null">
+                    <h2>Total MST Distance: {{ totalDistance }} miles</h2>
+                </div>
+                <div v-if="optimalDistances.length">
+                    <h3>Optimal Distances:</h3>
+                    <ul>
+                        <li v-for="(distance, index) in optimalDistances" :key="index">
+                            {{ cities[distance.city1].name }} - {{ cities[distance.city2].name }}: {{ distance.weight }} miles
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            cities: [
+                { name: "Los Angeles", x: 200, y: 600 },   // 0
+                { name: "San Diego", x: 250, y: 700 },     // 1
+                { name: "San Francisco", x: 100, y: 300 }, // 2
+                { name: "Bakersfield", x: 200, y: 500 },   // 3
+                { name: "Irvine", x: 240, y: 650 },        // 4
+                { name: "Fresno", x: 150, y: 400 },        // 5
+                { name: "Sacramento", x: 100, y: 200 },    // 6
+                { name: "Las Vegas", x: 500, y: 400 },     // 7
+                { name: "Reno", x: 150, y: 150 },          // 8
+                { name: "Sparks", x: 170, y: 180 },        // 9
+                { name: "Boulder City", x: 520, y: 420 },  // 10
+                { name: "Henderson", x: 510, y: 440 },     // 11
+                { name: "North Las Vegas", x: 505, y: 410 }, // 12
+                { name: "Carson City", x: 200, y: 170 },   // 13
+                { name: "Phoenix", x: 700, y: 550 },       // 14
+                { name: "Tucson", x: 750, y: 650 },        // 15
+                { name: "Scottsdale", x: 730, y: 520 },    // 16
+                { name: "Sedona", x: 650, y: 480 },        // 17
+                { name: "Tempe", x: 740, y: 530 },         // 18
+                { name: "Lake Havasu City", x: 600, y: 500 }, // 19
+                { name: "Yuma", x: 650, y: 580 }           // 20
+            ],
+            edges: [
+                {
+                    "city1": 0,
+                    "city2": 1,
+                    "weight": 120
+                },
+                {
+                    "city1": 0,
+                    "city2": 2,
+                    "weight": 381
+                },
+                {
+                    "city1": 0,
+                    "city2": 3,
+                    "weight": 111
+                },
+                {
+                    "city1": 0,
+                    "city2": 4,
+                    "weight": 40
+                },
+                {
+                    "city1": 0,
+                    "city2": 5,
+                    "weight": 218
+                },
+                {
+                    "city1": 0,
+                    "city2": 6,
+                    "weight": 384
+                },
+                {
+                    "city1": 0,
+                    "city2": 7,
+                    "weight": 228
+                },
+                {
+                    "city1": 0,
+                    "city2": 8,
+                    "weight": 388
+                },
+                {
+                    "city1": 0,
+                    "city2": 9,
+                    "weight": 387
+                },
+                {
+                    "city1": 0,
+                    "city2": 10,
+                    "weight": 234
+                },
+                {
+                    "city1": 0,
+                    "city2": 11,
+                    "weight": 230
+                },
+                {
+                    "city1": 0,
+                    "city2": 12,
+                    "weight": 231
+                },
+                {
+                    "city1": 0,
+                    "city2": 13,
+                    "weight": 363
+                },
+                {
+                    "city1": 0,
+                    "city2": 14,
+                    "weight": 373
+                },
+                {
+                    "city1": 0,
+                    "city2": 15,
+                    "weight": 483
+                },
+                {
+                    "city1": 0,
+                    "city2": 16,
+                    "weight": 382
+                },
+                {
+                    "city1": 0,
+                    "city2": 17,
+                    "weight": 477
+                },
+                {
+                    "city1": 0,
+                    "city2": 18,
+                    "weight": 381
+                },
+                {
+                    "city1": 0,
+                    "city2": 19,
+                    "weight": 298
+                },
+                {
+                    "city1": 0,
+                    "city2": 20,
+                    "weight": 272
+                },
+                {
+                    "city1": 1,
+                    "city2": 2,
+                    "weight": 502
+                },
+                {
+                    "city1": 1,
+                    "city2": 3,
+                    "weight": 232
+                },
+                {
+                    "city1": 1,
+                    "city2": 4,
+                    "weight": 85
+                },
+                {
+                    "city1": 1,
+                    "city2": 5,
+                    "weight": 338
+                },
+                {
+                    "city1": 1,
+                    "city2": 6,
+                    "weight": 504
+                },
+                {
+                    "city1": 1,
+                    "city2": 7,
+                    "weight": 265
+                },
+                {
+                    "city1": 1,
+                    "city2": 8,
+                    "weight": 493
+                },
+                {
+                    "city1": 1,
+                    "city2": 9,
+                    "weight": 493
+                },
+                {
+                    "city1": 1,
+                    "city2": 10,
+                    "weight": 261
+                },
+                {
+                    "city1": 1,
+                    "city2": 11,
+                    "weight": 261
+                },
+                {
+                    "city1": 1,
+                    "city2": 12,
+                    "weight": 267
+                },
+                {
+                    "city1": 1,
+                    "city2": 13,
+                    "weight": 269
+                },
+                {
+                    "city1": 1,
+                    "city2": 14,
+                    "weight": 355
+                },
+                {
+                    "city1": 1,
+                    "city2": 15,
+                    "weight": 405
+                },
+                {
+                    "city1": 1,
+                    "city2": 16,
+                    "weight": 364
+                },
+                {
+                    "city1": 1,
+                    "city2": 17,
+                    "weight": 461
+                },
+                {
+                    "city1": 1,
+                    "city2": 18,
+                    "weight": 363
+                },
+                {
+                    "city1": 1,
+                    "city2": 19,
+                    "weight": 301
+                },
+                {
+                    "city1": 1,
+                    "city2": 20,
+                    "weight": 172
+                },
+                {
+                    "city1": 2,
+                    "city2": 3,
+                    "weight": 282
+                },
+                {
+                    "city1": 2,
+                    "city2": 4,
+                    "weight": 422
+                },
+                {
+                    "city1": 2,
+                    "city2": 5,
+                    "weight": 186
+                },
+                {
+                    "city1": 2,
+                    "city2": 6,
+                    "weight": 87
+                },
+                {
+                    "city1": 2,
+                    "city2": 7,
+                    "weight": 416
+                },
+                {
+                    "city1": 2,
+                    "city2": 8,
+                    "weight": 186
+                },
+                {
+                    "city1": 2,
+                    "city2": 9,
+                    "weight": 188
+                },
+                {
+                    "city1": 2,
+                    "city2": 10,
+                    "weight": 437
+                },
+                {
+                    "city1": 2,
+                    "city2": 11,
+                    "weight": 428
+                },
+                {
+                    "city1": 2,
+                    "city2": 12,
+                    "weight": 417
+                },
+                {
+                    "city1": 2,
+                    "city2": 13,
+                    "weight": 173
+                },
+                {
+                    "city1": 2,
+                    "city2": 14,
+                    "weight": 754
+                },
+                {
+                    "city1": 2,
+                    "city2": 15,
+                    "weight": 864
+                },
+                {
+                    "city1": 2,
+                    "city2": 16,
+                    "weight": 763
+                },
+                {
+                    "city1": 2,
+                    "city2": 17,
+                    "weight": 788
+                },
+                {
+                    "city1": 2,
+                    "city2": 18,
+                    "weight": 760
+                },
+                {
+                    "city1": 2,
+                    "city2": 19,
+                    "weight": 597
+                },
+                {
+                    "city1": 2,
+                    "city2": 20,
+                    "weight": 652
+                },
+                {
+                    "city1": 3,
+                    "city2": 4,
+                    "weight": 151
+                },
+                {
+                    "city1": 3,
+                    "city2": 5,
+                    "weight": 109
+                },
+                {
+                    "city1": 3,
+                    "city2": 6,
+                    "weight": 277
+                },
+                {
+                    "city1": 3,
+                    "city2": 7,
+                    "weight": 224
+                },
+                {
+                    "city1": 3,
+                    "city2": 8,
+                    "weight": 290
+                },
+                {
+                    "city1": 3,
+                    "city2": 9,
+                    "weight": 290
+                },
+                {
+                    "city1": 3,
+                    "city2": 10,
+                    "weight": 238
+                },
+                {
+                    "city1": 3,
+                    "city2": 11,
+                    "weight": 231
+                },
+                {
+                    "city1": 3,
+                    "city2": 12,
+                    "weight": 226
+                },
+                {
+                    "city1": 3,
+                    "city2": 13,
+                    "weight": 265
+                },
+                {
+                    "city1": 3,
+                    "city2": 14,
+                    "weight": 484
+                },
+                {
+                    "city1": 3,
+                    "city2": 15,
+                    "weight": 594
+                },
+                {
+                    "city1": 3,
+                    "city2": 16,
+                    "weight": 493
+                },
+                {
+                    "city1": 3,
+                    "city2": 17,
+                    "weight": 506
+                },
+                {
+                    "city1": 3,
+                    "city2": 18,
+                    "weight": 491
+                },
+                {
+                    "city1": 3,
+                    "city2": 19,
+                    "weight": 315
+                },
+                {
+                    "city1": 3,
+                    "city2": 20,
+                    "weight": 382
+                },
+                {
+                    "city1": 4,
+                    "city2": 5,
+                    "weight": 258
+                },
+                {
+                    "city1": 4,
+                    "city2": 6,
+                    "weight": 424
+                },
+                {
+                    "city1": 4,
+                    "city2": 7,
+                    "weight": 229
+                },
+                {
+                    "city1": 4,
+                    "city2": 8,
+                    "weight": 419
+                },
+                {
+                    "city1": 4,
+                    "city2": 9,
+                    "weight": 418
+                },
+                {
+                    "city1": 4,
+                    "city2": 10,
+                    "weight": 232
+                },
+                {
+                    "city1": 4,
+                    "city2": 11,
+                    "weight": 229
+                },
+                {
+                    "city1": 4,
+                    "city2": 12,
+                    "weight": 231
+                },
+                {
+                    "city1": 4,
+                    "city2": 13,
+                    "weight": 393
+                },
+                {
+                    "city1": 4,
+                    "city2": 14,
+                    "weight": 359
+                },
+                {
+                    "city1": 4,
+                    "city2": 15,
+                    "weight": 469
+                },
+                {
+                    "city1": 4,
+                    "city2": 16,
+                    "weight": 367
+                },
+                {
+                    "city1": 4,
+                    "city2": 17,
+                    "weight": 463
+                },
+                {
+                    "city1": 4,
+                    "city2": 18,
+                    "weight": 366
+                },
+                {
+                    "city1": 4,
+                    "city2": 19,
+                    "weight": 276
+                },
+                {
+                    "city1": 4,
+                    "city2": 20,
+                    "weight": 249
+                },
+                {
+                    "city1": 5,
+                    "city2": 6,
+                    "weight": 169
+                },
+                {
+                    "city1": 5,
+                    "city2": 7,
+                    "weight": 261
+                },
+                {
+                    "city1": 5,
+                    "city2": 8,
+                    "weight": 193
+                },
+                {
+                    "city1": 5,
+                    "city2": 9,
+                    "weight": 193
+                },
+                {
+                    "city1": 5,
+                    "city2": 10,
+                    "weight": 280
+                },
+                {
+                    "city1": 5,
+                    "city2": 11,
+                    "weight": 272
+                },
+                {
+                    "city1": 5,
+                    "city2": 12,
+                    "weight": 262
+                },
+                {
+                    "city1": 5,
+                    "city2": 13,
+                    "weight": 167
+                },
+                {
+                    "city1": 5,
+                    "city2": 14,
+                    "weight": 591
+                },
+                {
+                    "city1": 5,
+                    "city2": 15,
+                    "weight": 701
+                },
+                {
+                    "city1": 5,
+                    "city2": 16,
+                    "weight": 599
+                },
+                {
+                    "city1": 5,
+                    "city2": 17,
+                    "weight": 615
+                },
+                {
+                    "city1": 5,
+                    "city2": 18,
+                    "weight": 598
+                },
+                {
+                    "city1": 5,
+                    "city2": 19,
+                    "weight": 423
+                },
+                {
+                    "city1": 5,
+                    "city2": 20,
+                    "weight": 492
+                },
+                {
+                    "city1": 6,
+                    "city2": 7,
+                    "weight": 259
+                },
+                {
+                    "city1": 6,
+                    "city2": 8,
+                    "weight": 111
+                },
+                {
+                    "city1": 6,
+                    "city2": 9,
+                    "weight": 114
+                },
+                {
+                    "city1": 6,
+                    "city2": 10,
+                    "weight": 408
+                },
+                {
+                    "city1": 6,
+                    "city2": 11,
+                    "weight": 399
+                },
+                {
+                    "city1": 6,
+                    "city2": 12,
+                    "weight": 387
+                },
+                {
+                    "city1": 6,
+                    "city2": 13,
+                    "weight": 101
+                },
+                {
+                    "city1": 6,
+                    "city2": 14,
+                    "weight": 756
+                },
+                {
+                    "city1": 6,
+                    "city2": 15,
+                    "weight": 866
+                },
+                {
+                    "city1": 6,
+                    "city2": 16,
+                    "weight": 765
+                },
+                {
+                    "city1": 6,
+                    "city2": 17,
+                    "weight": 783
+                },
+                {
+                    "city1": 6,
+                    "city2": 18,
+                    "weight": 763
+                },
+                {
+                    "city1": 6,
+                    "city2": 19,
+                    "weight": 591
+                },
+                {
+                    "city1": 6,
+                    "city2": 20,
+                    "weight": 654
+                },
+                {
+                    "city1": 7,
+                    "city2": 8,
+                    "weight": 344
+                },
+                {
+                    "city1": 7,
+                    "city2": 9,
+                    "weight": 342
+                },
+                {
+                    "city1": 7,
+                    "city2": 10,
+                    "weight": 22
+                },
+                {
+                    "city1": 7,
+                    "city2": 11,
+                    "weight": 13
+                },
+                {
+                    "city1": 7,
+                    "city2": 12,
+                    "weight": 2
+                },
+                {
+                    "city1": 7,
+                    "city2": 13,
+                    "weight": 327
+                },
+                {
+                    "city1": 7,
+                    "city2": 14,
+                    "weight": 256
+                },
+                {
+                    "city1": 7,
+                    "city2": 15,
+                    "weight": 362
+                },
+                {
+                    "city1": 7,
+                    "city2": 16,
+                    "weight": 260
+                },
+                {
+                    "city1": 7,
+                    "city2": 17,
+                    "weight": 210
+                },
+                {
+                    "city1": 7,
+                    "city2": 18,
+                    "weight": 262
+                },
+                {
+                    "city1": 7,
+                    "city2": 19,
+                    "weight": 125
+                },
+                {
+                    "city1": 7,
+                    "city2": 20,
+                    "weight": 242
+                },
+                {
+                    "city1": 8,
+                    "city2": 9,
+                    "weight": 3
+                },
+                {
+                    "city1": 8,
+                    "city2": 10,
+                    "weight": 366
+                },
+                {
+                    "city1": 8,
+                    "city2": 11,
+                    "weight": 357
+                },
+                {
+                    "city1": 8,
+                    "city2": 12,
+                    "weight": 344
+                },
+                {
+                    "city1": 8,
+                    "city2": 13,
+                    "weight": 25
+                },
+                {
+                    "city1": 8,
+                    "city2": 14,
+                    "weight": 601
+                },
+                {
+                    "city1": 8,
+                    "city2": 15,
+                    "weight": 706
+                },
+                {
+                    "city1": 8,
+                    "city2": 16,
+                    "weight": 604
+                },
+                {
+                    "city1": 8,
+                    "city2": 17,
+                    "weight": 547
+                },
+                {
+                    "city1": 8,
+                    "city2": 18,
+                    "weight": 607
+                },
+                {
+                    "city1": 8,
+                    "city2": 19,
+                    "weight": 462
+                },
+                {
+                    "city1": 8,
+                    "city2": 20,
+                    "weight": 553
+                },
+                {
+                    "city1": 9,
+                    "city2": 10,
+                    "weight": 364
+                },
+                {
+                    "city1": 9,
+                    "city2": 11,
+                    "weight": 355
+                },
+                {
+                    "city1": 9,
+                    "city2": 12,
+                    "weight": 342
+                },
+                {
+                    "city1": 9,
+                    "city2": 13,
+                    "weight": 26
+                },
+                {
+                    "city1": 9,
+                    "city2": 14,
+                    "weight": 598
+                },
+                {
+                    "city1": 9,
+                    "city2": 15,
+                    "weight": 704
+                },
+                {
+                    "city1": 9,
+                    "city2": 16,
+                    "weight": 602
+                },
+                {
+                    "city1": 9,
+                    "city2": 17,
+                    "weight": 545
+                },
+                {
+                    "city1": 9,
+                    "city2": 18,
+                    "weight": 605
+                },
+                {
+                    "city1": 9,
+                    "city2": 19,
+                    "weight": 460
+                },
+                {
+                    "city1": 9,
+                    "city2": 20,
+                    "weight": 552
+                },
+                {
+                    "city1": 10,
+                    "city2": 11,
+                    "weight": 9
+                },
+                {
+                    "city1": 10,
+                    "city2": 12,
+                    "weight": 22
+                },
+                {
+                    "city1": 10,
+                    "city2": 13,
+                    "weight": 348
+                },
+                {
+                    "city1": 10,
+                    "city2": 14,
+                    "weight": 234
+                },
+                {
+                    "city1": 10,
+                    "city2": 15,
+                    "weight": 341
+                },
+                {
+                    "city1": 10,
+                    "city2": 16,
+                    "weight": 238
+                },
+                {
+                    "city1": 10,
+                    "city2": 17,
+                    "weight": 189
+                },
+                {
+                    "city1": 10,
+                    "city2": 18,
+                    "weight": 241
+                },
+                {
+                    "city1": 10,
+                    "city2": 19,
+                    "weight": 107
+                },
+                {
+                    "city1": 10,
+                    "city2": 20,
+                    "weight": 227
+                },
+                {
+                    "city1": 11,
+                    "city2": 12,
+                    "weight": 13
+                },
+                {
+                    "city1": 11,
+                    "city2": 13,
+                    "weight": 339
+                },
+                {
+                    "city1": 11,
+                    "city2": 14,
+                    "weight": 243
+                },
+                {
+                    "city1": 11,
+                    "city2": 15,
+                    "weight": 349
+                },
+                {
+                    "city1": 11,
+                    "city2": 16,
+                    "weight": 247
+                },
+                {
+                    "city1": 11,
+                    "city2": 17,
+                    "weight": 198
+                },
+                {
+                    "city1": 11,
+                    "city2": 18,
+                    "weight": 250
+                },
+                {
+                    "city1": 11,
+                    "city2": 19,
+                    "weight": 114
+                },
+                {
+                    "city1": 11,
+                    "city2": 20,
+                    "weight": 232
+                },
+                {
+                    "city1": 12,
+                    "city2": 13,
+                    "weight": 401
+                },
+                {
+                    "city1": 12,
+                    "city2": 14,
+                    "weight": 257
+                },
+                {
+                    "city1": 12,
+                    "city2": 15,
+                    "weight": 362
+                },
+                {
+                    "city1": 12,
+                    "city2": 16,
+                    "weight": 260
+                },
+                {
+                    "city1": 12,
+                    "city2": 17,
+                    "weight": 210
+                },
+                {
+                    "city1": 12,
+                    "city2": 18,
+                    "weight": 263
+                },
+                {
+                    "city1": 12,
+                    "city2": 19,
+                    "weight": 127
+                },
+                {
+                    "city1": 12,
+                    "city2": 20,
+                    "weight": 243
+                },
+                {
+                    "city1": 13,
+                    "city2": 14,
+                    "weight": 582
+                },
+                {
+                    "city1": 13,
+                    "city2": 15,
+                    "weight": 687
+                },
+                {
+                    "city1": 13,
+                    "city2": 16,
+                    "weight": 586
+                },
+                {
+                    "city1": 13,
+                    "city2": 17,
+                    "weight": 531
+                },
+                {
+                    "city1": 13,
+                    "city2": 18,
+                    "weight": 588
+                },
+                {
+                    "city1": 13,
+                    "city2": 19,
+                    "weight": 442
+                },
+                {
+                    "city1": 13,
+                    "city2": 20,
+                    "weight": 531
+                },
+                {
+                    "city1": 14,
+                    "city2": 15,
+                    "weight": 112
+                },
+                {
+                    "city1": 14,
+                    "city2": 16,
+                    "weight": 12
+                },
+                {
+                    "city1": 14,
+                    "city2": 17,
+                    "weight": 117
+                },
+                {
+                    "city1": 14,
+                    "city2": 18,
+                    "weight": 10
+                },
+                {
+                    "city1": 14,
+                    "city2": 19,
+                    "weight": 194
+                },
+                {
+                    "city1": 14,
+                    "city2": 20,
+                    "weight": 185
+                },
+                {
+                    "city1": 15,
+                    "city2": 16,
+                    "weight": 113
+                },
+                {
+                    "city1": 15,
+                    "city2": 17,
+                    "weight": 227
+                },
+                {
+                    "city1": 15,
+                    "city2": 18,
+                    "weight": 107
+                },
+                {
+                    "city1": 15,
+                    "city2": 19,
+                    "weight": 305
+                },
+                {
+                    "city1": 15,
+                    "city2": 20,
+                    "weight": 236
+                },
+                {
+                    "city1": 16,
+                    "city2": 17,
+                    "weight": 125
+                },
+                {
+                    "city1": 16,
+                    "city2": 18,
+                    "weight": 6
+                },
+                {
+                    "city1": 16,
+                    "city2": 19,
+                    "weight": 203
+                },
+                {
+                    "city1": 16,
+                    "city2": 20,
+                    "weight": 194
+                },
+                {
+                    "city1": 17,
+                    "city2": 18,
+                    "weight": 124
+                },
+                {
+                    "city1": 17,
+                    "city2": 19,
+                    "weight": 232
+                },
+                {
+                    "city1": 17,
+                    "city2": 20,
+                    "weight": 285
+                },
+                {
+                    "city1": 18,
+                    "city2": 19,
+                    "weight": 202
+                },
+                {
+                    "city1": 18,
+                    "city2": 20,
+                    "weight": 193
+                },
+                {
+                    "city1": 19,
+                    "city2": 20,
+                    "weight": 155
+                }
+            ],
+
+            mstEdges: [],
+            totalDistance: null,
+            optimalDistances: [],
+            isRunning: false,
+        },
+        mounted() {
+            this.drawGraph();
+        },
+        methods: {
+            drawGraph() {
+                const canvas = document.getElementById("graphCanvas");
+                const ctx = canvas.getContext("2d");
+
+                // clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // draw edges
+                this.edges.forEach(edge => {
+                    const city1 = this.cities[edge.city1];
+                    const city2 = this.cities[edge.city2];
+                    ctx.strokeStyle = "lightgray";
+                    ctx.beginPath();
+                    ctx.moveTo(city1.x, city1.y);
+                    ctx.lineTo(city2.x, city2.y);
+                    ctx.stroke();
+                });
+
+                // highlight edges
+                this.mstEdges.forEach(edge => {
+                    const city1 = this.cities[edge.city1];
+                    const city2 = this.cities[edge.city2];
+                    ctx.strokeStyle = "red";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(city1.x, city1.y);
+                    ctx.lineTo(city2.x, city2.y);
+                    ctx.stroke();
+                });
+
+                // draw cities
+                this.cities.forEach(city => {
+                    ctx.fillStyle = "black";
+                    ctx.beginPath();
+                    ctx.arc(city.x, city.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillText(city.name, city.x + 8, city.y);
+                });
+            },
+            // Prim's Algorithm
+            async usePrimAlgorithm() {
+                this.resetGraph();
+                this.isRunning = true;
+                this.totalDistance = 0;
+                this.optimalDistances = [];
+
+                const pq = [];
+                const visited = new Set();
+
+                visited.add(0);
+                this.edges.forEach(edge => {
+                    if (edge.city1 === 0 || edge.city2 === 0) {
+                        pq.push(edge);
+                    }
+                });
+                pq.sort((a, b) => a.weight - b.weight);
+
+                while (pq.length > 0) {
+                    if (!this.isRunning) return;
+
+                    const edge = pq.shift();
+                    const nextCity = visited.has(edge.city1) ? edge.city2 : edge.city1;
+
+                    if (!visited.has(nextCity)) {
+                        this.mstEdges.push(edge);
+                        visited.add(nextCity);
+
+                        this.edges.forEach(e => {
+                            if (
+                                (e.city1 === nextCity && !visited.has(e.city2)) ||
+                                (e.city2 === nextCity && !visited.has(e.city1))
+                            ) {
+                                pq.push(e);
+                            }
+                        });
+                        pq.sort((a, b) => a.weight - b.weight);
+
+                        this.drawGraph();
+                        await this.sleep(1000);
+                    }
+                }
+                this.mstEdges.forEach(edge => {
+                    this.totalDistance += edge.weight;
+                    this.optimalDistances.push(edge);
+                });
+                this.isRunning = false;
+            },
+            // Kruskal's Algorithm
+            async useKruskalAlgorithm() {
+                this.resetGraph();
+                this.isRunning = true;
+                this.totalDistance = 0;
+                this.optimalDistances = [];
+
+                const edges = [...this.edges];
+                edges.sort((a, b) => a.weight - b.weight);
+
+                const parent = Array(this.cities.length)
+                    .fill(0)
+                    .map((_, i) => i);
+
+                const find = x => {
+                    if (parent[x] !== x) parent[x] = find(parent[x]);
+                    return parent[x];
+                };
+
+                const union = (x, y) => {
+                    parent[find(x)] = find(y);
+                };
+
+                for (let edge of edges) {
+                    if (!this.isRunning) return;
+
+                    if (find(edge.city1) !== find(edge.city2)) {
+                        this.mstEdges.push(edge);
+                        union(edge.city1, edge.city2);
+
+                        this.drawGraph();
+                        await this.sleep(1000);
+                    }
+
+                    if (this.mstEdges.length >= this.cities.length - 1) break;
+                }
+                this.mstEdges.forEach(edge => {
+                    this.totalDistance += edge.weight;
+                    this.optimalDistances.push(edge);
+                });
+                this.isRunning = false;
+            },
+            // reset 
+            resetGraph() {
+                this.isRunning = false;
+                this.mstEdges = [];
+                this.totalDistance = null;
+                this.optimalDistances = [];
+                this.drawGraph();
+            },
+            // modify the distance
+            modifyDistance() {
+                const city1 = prompt("Enter the first city index:");
+                const city2 = prompt("Enter the second city index:");
+                const newWeight = prompt("Enter the new distance:");
+
+                const edge = this.edges.find(
+                    e =>
+                        (e.city1 == city1 && e.city2 == city2) ||
+                        (e.city1 == city2 && e.city2 == city1)
+                );
+                if (edge) {
+                    edge.weight = parseFloat(newWeight);
+                    this.drawGraph();
+                } else {
+                    alert("Edge not found!");
+                }
+            },
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            },
+            // remove any edge (after generating the MST, to get a new MST)
+            removeEdge() {
+                const city1 = parseInt(prompt("Enter the first city index to remove:"));
+                const city2 = parseInt(prompt("Enter the second city index to remove:"));
+                const edgeIndex = this.mstEdges.findIndex(
+                    e => 
+                        (e.city1 === city1 && e.city2 === city2) || 
+                        (e.city1 === city2 && e.city2 === city1)
+                );
+
+                if (edgeIndex !== -1) {
+                    this.mstEdges.splice(edgeIndex, 1); 
+                    this.recalculateMST(city1, city2); 
+                } else {
+                    alert("Edge not found in the current MST!");
+                }
+            },
+            // to recalculate the MST 
+            recalculateMST(city1, city2) {
+                // mark the edge which is removed between city1 and city2 as unavailable
+                this.edges = this.edges.filter(
+                    e => 
+                        !(e.city1 === city1 && e.city2 === city2) &&
+                        !(e.city1 === city2 && e.city2 === city1)
+                );
+
+                // recalculate MST using Prim's algorithm / otherwise Kruskal's algorithm
+                this.resetGraph();
+                if (confirm("Recalculate MST using Prim's Algorithm?")) {
+                    this.usePrimAlgorithm();
+                } else {
+                    this.useKruskalAlgorithm();
+                }
+            },
+
+        },
+    });
+</script>
+</body>
+</html>
